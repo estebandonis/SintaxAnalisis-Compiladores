@@ -1,7 +1,7 @@
 
-# Laboratorio 3
+# Compiscript Compiler
 
-## Para correr el lab
+## Para correr compilador
 
 Utilicen nuevamente el container del lab anterior o su propia implementación. No usen Java si no quieren, pueden usar Python.
 
