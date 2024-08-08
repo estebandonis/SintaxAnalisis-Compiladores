@@ -121,17 +121,25 @@ class MyVisitor(CompiscriptVisitor):
 def compilador(input_stream):
     try:
         print("Entro al compilador")
+        input_stream = InputStream(input_stream)
         lexer = CompiscriptLexer(input_stream)
+        print("Paso el lexer")
         stream = CommonTokenStream(lexer)
+        print("Paso el stream")
         parser = CompiscriptParser(stream)
-        tree = parser.program()  # Analizar la entrada utilizando la regla 'prog'
+        print("Paso el parser")
+        tree = parser.program()
+        print("program")
+        tree_str = tree.toStringTree(recog=parser)
 
-        visitor = MyVisitor()
-        visitor.visit(tree)
+        print(tree.toStringTree(recog=parser))
+
+        # visitor = MyVisitor()
+        # visitor.visit(tree)
 
         print("Compilación exitosa")
 
-        return 0
+        return tree_str
     except Exception as e:
         print(f"Error de compilación: {e}")
         return 1
