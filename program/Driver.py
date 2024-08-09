@@ -1,13 +1,15 @@
 import sys
-import pickle
+import os
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
+from graphviz import Digraph
 from .CompiscriptLexer import CompiscriptLexer
 from .CompiscriptParser import CompiscriptParser
 from .CompiscriptVisitor import CompiscriptVisitor
 
-
+# Custom visitor class inheriting from CompiscriptVisitor
 class MyVisitor(CompiscriptVisitor):
+    # Visit a parse tree produced by CompiscriptParser#ifStmt.
     def visitIfStmt(self, ctx: CompiscriptParser.IfStmtContext):
         return self.visitChildren(ctx)
 
@@ -42,8 +44,6 @@ class MyVisitor(CompiscriptVisitor):
     # Visit a parse tree produced by CompiscriptParser#forStmt.
     def visitForStmt(self, ctx: CompiscriptParser.ForStmtContext):
         return self.visitChildren(ctx)
-
-    # Visit a parse tree produced by CompiscriptParser#ifStmt.
 
     # Visit a parse tree produced by CompiscriptParser#printStmt.
     def visitPrintStmt(self, ctx: CompiscriptParser.PrintStmtContext):
@@ -116,30 +116,61 @@ class MyVisitor(CompiscriptVisitor):
     # Visit a parse tree produced by CompiscriptParser#arguments.
     def visitArguments(self, ctx: CompiscriptParser.ArgumentsContext):
         return self.visitChildren(ctx)
+    
+    # Constructor for MyVisitor
+    def __init__(self, parser):
+        self.graph = Digraph(comment='AST')  # Initialize a Digraph for the AST
+        self.counter = 1  # Initialize a counter for node IDs
+        self.parser = parser  # Store the parser
 
+    # Override the visit method to create graph nodes and edges
+    def visit(self, ctx):
+        node_id = f"node{self.counter}"  # Create a unique node ID
+        self.counter += 1  # Increment the counter
 
+        if isinstance(ctx, ParserRuleContext):
+            rule_name = self.parser.ruleNames[ctx.getRuleIndex()]  # Get the rule name
+            label = f"{rule_name}: {ctx.getText()}"  # Create a label for the node
+        else:
+            label = f"Terminal: {ctx.getText()}"  # Create a label for terminal nodes
+
+        self.graph.node(node_id, label)  # Add the node to the graph
+
+        for i in range(ctx.getChildCount()):  # Iterate over children
+            child = ctx.getChild(i)
+            child_id = self.visit(child)  # Recursively visit children
+            self.graph.edge(node_id, child_id)  # Add an edge from the current node to the child
+
+        return node_id  # Return the node ID
+
+    # Method to save the graph to a file
+    def save_graph(self, filename):
+        self.graph.render(filename, format='png')  # Render the graph to a file
+
+# Compiler function
 def compilador(input_stream):
     try:
         print("Entro al compilador")
-        input_stream = InputStream(input_stream)
-        lexer = CompiscriptLexer(input_stream)
+        input_stream = InputStream(input_stream)  # Create an input stream
+        lexer = CompiscriptLexer(input_stream)  # Create a lexer
         print("Paso el lexer")
-        stream = CommonTokenStream(lexer)
+        stream = CommonTokenStream(lexer)  # Create a token stream
         print("Paso el stream")
-        parser = CompiscriptParser(stream)
+        parser = CompiscriptParser(stream)  # Create a parser
         print("Paso el parser")
-        tree = parser.program()
+        tree = parser.program()  # Parse the input
         print("program")
-        tree_str = tree.toStringTree(recog=parser)
+        tree_str = tree.toStringTree(recog=parser)  # Convert the parse tree to a string
 
         print(tree.toStringTree(recog=parser))
 
-        # visitor = MyVisitor()
-        # visitor.visit(tree)
+        visitor = MyVisitor(parser)  # Create a visitor
+        visitor.visit(tree)  # Visit the parse tree
+        visitor.save_graph("./output/graph")  # Save the graph
 
-        print("Compilación exitosa")
+        print("Compilación y visualización del árbol exitosas")
 
-        return tree_str
+        return tree_str  # Return the parse tree string
     except Exception as e:
-        print(f"Error de compilación: {e}")
-        return 1
+        print(f"Error de compilación: {e}")  # Print any errors
+        return 1  # Return an error code
